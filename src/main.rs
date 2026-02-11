@@ -1,18 +1,39 @@
-use std::env;
-use std::fs;
+use clap::{Parser, Subcommand};
+use codecrafters_git::git;
+use anyhow::Result;
 
-fn main() {
+#[derive(Parser)]
+#[command(author, version, about)]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    Init,
+    CatFile {
+        #[arg(short = 'p')]
+        pretty: bool,
+        object: String,
+    },
+}
+
+fn main() -> Result<()> {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     eprintln!("Logs from your program will appear here!");
 
-    let args: Vec<String> = env::args().collect();
-    if args[1] == "init" {
-        fs::create_dir(".git").unwrap();
-        fs::create_dir(".git/objects").unwrap();
-        fs::create_dir(".git/refs").unwrap();
-        fs::write(".git/HEAD", "ref: refs/heads/main\n").unwrap();
-        println!("Initialized git directory")
-    } else {
-        println!("unknown command: {}", args[1])
+    let cli = Cli::parse();
+
+    match cli.command {
+        Commands::Init => {
+            git::init();
+            println!("Initialized git directory");
+        }
+        Commands::CatFile { pretty: _, object } => {
+            let content = git::cat_file(&object)?;
+            print!("{content}");
+        }
     }
+    Ok(())
 }
