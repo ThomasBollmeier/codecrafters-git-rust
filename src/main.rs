@@ -17,11 +17,16 @@ enum Commands {
         pretty: bool,
         object: String,
     },
+    HashObject {
+        #[arg(short = 'w')]
+        write: bool,
+        file: String,
+    },
 }
 
 fn main() -> Result<()> {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
-    eprintln!("Logs from your program will appear here!");
+    //eprintln!("Logs from your program will appear here!");
 
     let cli = Cli::parse();
 
@@ -33,6 +38,10 @@ fn main() -> Result<()> {
         Commands::CatFile { pretty: _, object } => {
             let content = git::cat_file(&object)?;
             print!("{content}");
+        }
+        Commands::HashObject { write, file, } => {
+            let hash = git::hash_object(&file, write)?;
+            println!("{hash}");
         }
     }
     Ok(())

@@ -1,7 +1,8 @@
 use std::fs;
-use std::io::Read;
+use std::io::{Read, Write};
 use anyhow::Result;
 use flate2::read::ZlibDecoder;
+use flate2::write::ZlibEncoder;
 
 #[derive(Debug)]
 pub enum GitObject {
@@ -36,6 +37,21 @@ impl GitObject {
         }
 
         Err(anyhow::anyhow!("Unsupported object type"))
+    }
+
+    pub fn add_blob_header (content: &[u8]) -> Vec<u8> {
+        let content_size = content.len();
+        let header = format!("blob {content_size}\0");
+        [header.as_bytes(), content].concat()
+    }
+
+    pub fn write_blob(object_path: &str, content_with_header: &[u8]) -> Result<()> {
+        // use flate2 to compress the data and write it to the object path
+        let mut encoder = ZlibEncoder::new(Vec::new(), flate2::Compression::default());
+        encoder.write_all(content_with_header)?;
+        let compressed_data = encoder.finish()?;
+        fs::write(object_path, compressed_data)?;
+        Ok(())
     }
 
 }
