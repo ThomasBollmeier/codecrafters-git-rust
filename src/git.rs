@@ -1,5 +1,5 @@
 use anyhow::Result;
-use objects::GitObject;
+use objects::{GitObject, TreeEntryMode};
 use sha1::Digest;
 use std::fs;
 
@@ -17,7 +17,7 @@ pub fn cat_file(hash: &str) -> Result<String> {
     let git_object = GitObject::read(&object_path)?;
 
     match git_object {
-        GitObject::Blob(blob) => Ok(String::from_utf8_lossy(&blob).to_string()),
+        GitObject::Blob(blob) => Ok(blob.iter().map(|b| *b as char).collect()),
         _ => Err(anyhow::anyhow!("Unsupported git object type")),
     }
 }
@@ -44,4 +44,46 @@ pub fn hash_object(file_path: &str, write: bool) -> Result<String> {
     }
 
     Ok(hash)
+}
+
+pub fn ls_tree(tree: &str, name_only: bool) -> Result<String> {
+    let tree_path = format!(".git/objects/{}/{}", &tree[0..2], &tree[2..]);
+    let git_object = GitObject::read(&tree_path)?;
+
+    match git_object {
+        GitObject::Tree(entries) => {
+            let output = entries
+                .iter()
+                .map(|entry| {
+                    if name_only {
+                        entry.name.clone()
+                    } else {
+                        format!(
+                            "{} {} {}",
+                            mode_to_string(&entry.mode),
+                            entry.name,
+                            bytes_to_hex(&entry.hash)
+                        )
+                    }
+                })
+                .collect::<Vec<String>>()
+                .join("\n") + "\n";
+            
+            Ok(output)
+        }
+        _ => Err(anyhow::anyhow!("Unsupported git object type")),
+    }
+}
+
+fn bytes_to_hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{:02x}", b)).collect()
+}
+
+fn mode_to_string(mode: &TreeEntryMode) -> String {
+    match mode {
+        TreeEntryMode::Directory => "40000".to_string(),
+        TreeEntryMode::RegularFile => "100644".to_string(),
+        TreeEntryMode::ExecutableFile => "100755".to_string(),
+        TreeEntryMode::SymbolicLink => "120000".to_string(),
+    }
 }

@@ -13,14 +13,19 @@ struct Cli {
 enum Commands {
     Init,
     CatFile {
-        #[arg(short = 'p')]
+        #[arg(short = 'p', help = "Pretty-print the contents of the object")]
         pretty: bool,
         object: String,
     },
     HashObject {
-        #[arg(short = 'w')]
+        #[arg(short = 'w', help="Write the object into the git database")]
         write: bool,
         file: String,
+    },
+    LsTree {
+        #[arg(long = "name-only", help = "Only show the file names, not the mode and hash")]
+        name_only: bool,
+        tree: String,
     },
 }
 
@@ -42,6 +47,10 @@ fn main() -> Result<()> {
         Commands::HashObject { write, file, } => {
             let hash = git::hash_object(&file, write)?;
             println!("{hash}");
+        }
+        Commands::LsTree { tree, name_only } => {
+            let output = git::ls_tree(&tree, name_only)?;
+            print!("{output}");
         }
     }
     Ok(())
