@@ -27,6 +27,7 @@ enum Commands {
         name_only: bool,
         tree: String,
     },
+    WriteTree,
 }
 
 fn main() -> Result<()> {
@@ -45,12 +46,16 @@ fn main() -> Result<()> {
             print!("{content}");
         }
         Commands::HashObject { write, file, } => {
-            let hash = git::hash_object(&file, write)?;
+            let hash = git::bytes_to_hex(&git::hash_object(&file, write)?);
             println!("{hash}");
         }
         Commands::LsTree { tree, name_only } => {
             let output = git::ls_tree(&tree, name_only)?;
             print!("{output}");
+        }
+        Commands::WriteTree => {
+            let hash = git::bytes_to_hex(&git::write_tree(".")?);
+            println!("{hash}");
         }
     }
     Ok(())
