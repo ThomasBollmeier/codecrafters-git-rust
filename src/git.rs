@@ -1,3 +1,4 @@
+use crate::git::objects::PersonInfo;
 use anyhow::Result;
 use objects::{GitObject, TreeEntryMode};
 use sha1::Digest;
@@ -83,6 +84,35 @@ pub fn write_tree(path: &str) -> Result<Vec<u8>> {
     let content_with_header = GitObject::add_tree_header(&content);
     let hash = create_sha1_hash(&content_with_header);
 
+    let hash_str: String = bytes_to_hex(&hash);
+    let object_path = format!(".git/objects/{}/{}", &hash_str[0..2], &hash_str[2..]);
+    fs::create_dir_all(format!(".git/objects/{}", &hash_str[0..2]))?;
+    GitObject::write_object(&object_path, &content_with_header)?;
+
+    Ok(hash)
+}
+
+pub fn commit_tree(tree: &str, message: &str, parent: &Option<String>) -> Result<Vec<u8>> {
+    let mut content = format!("tree {}\n", tree);
+    if let Some(parent_hash) = parent {
+        content += &format!("parent {}\n", parent_hash);
+    }
+    let author = PersonInfo::default();
+    content += &format!(
+        "author {} <{}> {} +{:04}\n",
+        author.name, author.email, author.timestamp, author.timezone_offset
+    );
+    let committer = PersonInfo::default();
+    content += &format!(
+        "committer {} <{}> {} +{:04}\n",
+        committer.name, committer.email, committer.timestamp, committer.timezone_offset
+    );
+    content += &format!("\n{message}\n");
+
+    let content = content.into_bytes();
+    let content_with_header = GitObject::add_commit_header(&content);
+
+    let hash = create_sha1_hash(&content_with_header);
     let hash_str: String = bytes_to_hex(&hash);
     let object_path = format!(".git/objects/{}/{}", &hash_str[0..2], &hash_str[2..]);
     fs::create_dir_all(format!(".git/objects/{}", &hash_str[0..2]))?;

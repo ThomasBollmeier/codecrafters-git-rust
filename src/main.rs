@@ -28,6 +28,13 @@ enum Commands {
         tree: String,
     },
     WriteTree,
+    CommitTree {
+        #[arg(short = 'm', help = "Commit message", required = true)]
+        message: String,
+        #[arg(short = 'p', help = "Parent commit hash")]
+        parent: Option<String>,
+        tree: String,
+    },
 }
 
 fn main() -> Result<()> {
@@ -55,6 +62,10 @@ fn main() -> Result<()> {
         }
         Commands::WriteTree => {
             let hash = git::bytes_to_hex(&git::write_tree(".")?);
+            println!("{hash}");
+        }
+        Commands::CommitTree { message, parent, tree } => {
+            let hash = git::bytes_to_hex(&git::commit_tree(&tree, &message, &parent)?);
             println!("{hash}");
         }
     }
